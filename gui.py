@@ -29,6 +29,10 @@ class GUIUI(qw.QDialog):
 
         rotation_widget.setLayout(rotation_layout)
 
+        self.frames = qw.QDoubleSpinBox()
+        self.frames.setRange(10, 1000)
+        self.frames.setValue(120)
+
         create_tt = qw.QPushButton("Create Turn Table")
         create_pb = qw.QPushButton("Create Playblast")
         remove_tt = qw.QPushButton("Remove Turn Table")
@@ -39,6 +43,7 @@ class GUIUI(qw.QDialog):
         layout = qw.QFormLayout(self)
 
         layout.addRow("Rotation Direction:", rotation_widget)
+        layout.addRow("Number of Frames:", self.frames)
         layout.addRow(create_tt)
         layout.addRow(create_pb)
         layout.addRow(remove_tt)
