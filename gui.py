@@ -1,4 +1,5 @@
 import maya.cmds as cmds
+import os
 import PySide6.QtWidgets as qw
 import sys
 
@@ -24,7 +25,7 @@ class TurnaroundTool:
 
         self.turntable = cmds.group(empty=True, name="turntable_grp")
 
-        rotation_group = cmds.group( empty=True, name="turntable_rotate", parent.self.turntable)
+        rotation_group = cmds.group( empty=True, name="turntable_rotate", parent=self.turntable)
 
         if not cmds.objExists(f"{self.turntable}.rotateGroup"):
             cmds.addAttr(self.turntable, ln="rotateGroup", dt="string")
@@ -53,11 +54,35 @@ class TurnaroundTool:
         cmds.setAttr(f"{rotation_group}.rotateY", rotation_amount)
         cmds.setKeyframe(rotation_group, attribute="rotateY", time=num_frames)
 
+    def create_playblast(self):
+        project = cmds.workspace(query=True, rootDirectory=True)
+        playblast_folder = os.path.join(project, "playblasts")
+
+        if not os.path.exists(playblast_folder):
+            os.makedirs(playblast_folder)
+
+        start = int(cmds.playbackOptions(query=True, minTime=True))
+        end = int(cmds.playbackOptions(query=True, maxTime=True))
+
+        output = os.path.join(playblast_folder, "turnaround")
+
+        cmds.playblast(
+            filename=output,
+            format="image",
+            sequenceTime=False,
+            clearCache=True,
+            viewer=False,
+            showOrnaments=False,
+            startTime=start,
+            endTime=end,
+            width=1920,
+            height=1080
+        )
+
     def remove_turntable(self):
         if not cmds.objExists("turntable_grp"):
             return
 
-        # quick fix for parenting, should probably clean this up later
         children = cmds.listRelatives( "turntable_grp", allDescendents=True, type="transform" )
 
         if children:
@@ -138,6 +163,7 @@ class GUIUI(qw.QDialog):
 
         cmds.playbackOptions(minTime=1, maxTime=frames)
         self.tool.create_animation(frames, direction)
+        self.tool.create_playblast()
 
     def remove_turntable(self):
         self.tool.remove_turntable()
