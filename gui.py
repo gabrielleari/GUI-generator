@@ -4,7 +4,6 @@ import sys
 
 sys.path.insert(0, 'C:\Program Files\Autodesk\Maya2026\scripts')
 
-
 class TurnaroundTool:
 
     def __init__(self):
@@ -16,15 +15,15 @@ class TurnaroundTool:
 
         self.turntable = cmds.group(empty=True, name="turntable_grp")
 
-        rot_grp = cmds.group(
-            empty=True,
-            name="turntable_rotate",
-            parent=self.turntable
-        )
+        rotation_group = cmds.group( empty=True, name="turntable_rotate", parent=self.turntable)
 
         cmds.addAttr(self.turntable, ln="rotateGroup", dt="string")
-        cmds.setAttr( f"{self.turntable}.rotateGroup", rot_grp, type="string")
+        cmds.setAttr( f"{self.turntable}.rotateGroup", rotation_group, type="string")
 
+    def parent_model(self):
+        selection = cmds.ls(selection=True, transforms=True)
+        rotation_group = cmds.getAttr(f"{self.turntable}.rotateGroup")
+        cmds.parent(selection[0], rotation_group)
 
 class GUIUI(qw.QDialog):
 
@@ -78,12 +77,11 @@ class GUIUI(qw.QDialog):
 
     def create_turntable(self):
         self.tool.create_turntable()
-
+        self.tool.parent_model()
 
 def launch_ui():
     global GUIUI_window
     GUIUI_window = GUIUI()
     GUIUI_window.show()
-
 
 launch_ui()
