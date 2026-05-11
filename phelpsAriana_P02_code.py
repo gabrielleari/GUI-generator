@@ -12,6 +12,7 @@ class TurnaroundTool:
         self.turntable = None
         self.selected_model = None
         self.original_parent = None
+        self.model_hierarchy = None
 
     def create_turntable(self, direction="ccw"):
         selection = cmds.ls(selection=True, transforms=True)
@@ -22,10 +23,14 @@ class TurnaroundTool:
 
         self.selected_model = selection[0]
 
-        # store original parent so we can restore it on removal
+        self.model_hierarchy = cmds.listRelatives( self.selected_model, allDescendents=True, type="transform" )
+
+        if self.model_hierarchy is None:
+            self.model_hierarchy = []
+
         original_parents = cmds.listRelatives( self.selected_model, parent=True)
 
-        self.original_parent = (original_parents[0] if original_parents else None )
+        self.original_parent = ( original_parents[0] if original_parents else None )
 
         if cmds.objExists("turntable_grp"):
             cmds.delete("turntable_grp")
@@ -37,7 +42,7 @@ class TurnaroundTool:
         if not cmds.objExists(f"{self.turntable}.rotateGroup"):
             cmds.addAttr(self.turntable, ln="rotateGroup", dt="string")
 
-        cmds.setAttr( f"{self.turntable}.rotateGroup", rotation_group, type="string" )
+        cmds.setAttr(f"{self.turntable}.rotateGroup", rotation_group, type="string" )
 
         return True
 
@@ -93,23 +98,33 @@ class TurnaroundTool:
         )
 
     def remove_turntable(self):
-        if not cmds.objExists("turntable_grp"):
-            return
+        try:
+            if not cmds.objExists("turntable_grp"):
+                return
 
-        children = cmds.listRelatives( "turntable_grp", allDescendents=True, type="transform" )
+            rotation_group = "turntable_rotate"
 
-        if children:
-            for child in children:
-                if "turntable" not in child:
-                    if self.original_parent and cmds.objExists(self.original_parent):
-                        cmds.parent(child, self.original_parent)
-                    else:
-                        cmds.parent(child, world=True)
+            if cmds.objExists(rotation_group):
+                # use children=True instead of allDescendents
+                # so nested hierarchy stays intact and comes along as one unit
+                direct_children = cmds.listRelatives( rotation_group, children=True, type="transform")
 
-        cmds.delete("turntable_grp")
+                if direct_children:
+                    for child in direct_children:
+                        if "turntable" not in child:
+                            if self.original_parent and cmds.objExists(self.original_parent):
+                                cmds.parent(child, self.original_parent)
+                            else:
+                                cmds.parent(child, world=True)
 
-        self.selected_model = None
-        self.original_parent = None
+            cmds.delete("turntable_grp")
+
+            self.selected_model = None
+            self.original_parent = None
+            self.model_hierarchy = None
+
+        except Exception as error:
+            print(error)
 
 class GUIUI(qw.QDialog):
 
