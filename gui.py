@@ -24,12 +24,12 @@ class TurnaroundTool:
 
         self.turntable = cmds.group(empty=True, name="turntable_grp")
 
-        rotation_group = cmds.group( empty=True, name="turntable_rotate", parent=self.turntable)
+        rotation_group = cmds.group( empty=True, name="turntable_rotate", parent=self.turntable )
 
         if not cmds.objExists(f"{self.turntable}.rotateGroup"):
             cmds.addAttr(self.turntable, ln="rotateGroup", dt="string")
 
-        cmds.setAttr( f"{self.turntable}.rotateGroup", rotation_group, type="string")
+        cmds.setAttr(f"{self.turntable}.rotateGroup", rotation_group, type="string" )
 
         return True
 
@@ -41,6 +41,17 @@ class TurnaroundTool:
         cmds.parent(self.selected_model, rotation_group)
 
         return True
+
+    def create_animation(self, num_frames=120, direction="ccw"):
+        rotation_group = cmds.getAttr(f"{self.turntable}.rotateGroup")
+
+        cmds.setAttr(f"{rotation_group}.rotateY", 0)
+        cmds.setKeyframe(rotation_group, attribute="rotateY", time=1)
+
+        rotation_amount = 360 if direction == "ccw" else -360
+
+        cmds.setAttr(f"{rotation_group}.rotateY", rotation_amount)
+        cmds.setKeyframe(rotation_group, attribute="rotateY", time=num_frames)
 
 class GUIUI(qw.QDialog):
 
@@ -78,6 +89,8 @@ class GUIUI(qw.QDialog):
         create_tt.clicked.connect(self.create_turntable)
 
         create_pb = qw.QPushButton("Create Playblast")
+        create_pb.clicked.connect(self.create_playblast)
+
         remove_tt = qw.QPushButton("Remove Turn Table")
 
         close = qw.QPushButton("Close")
@@ -99,6 +112,16 @@ class GUIUI(qw.QDialog):
             direction = "ccw"
         self.tool.create_turntable(direction)
         self.tool.parent_model()
+
+    def create_playblast(self):
+        if self.rotation_direction.checkedId() == 0:
+            direction = "cw"
+        else:
+            direction = "ccw"
+        frames = int(self.frames.value())
+
+        cmds.playbackOptions(minTime=1, maxTime=frames)
+        self.tool.create_animation(frames, direction)
 
 def launch_ui():
     global GUIUI_window
