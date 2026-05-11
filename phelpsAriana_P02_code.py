@@ -11,6 +11,7 @@ class TurnaroundTool:
     def __init__(self):
         self.turntable = None
         self.selected_model = None
+        self.original_parent = None
 
     def create_turntable(self, direction="ccw"):
         selection = cmds.ls(selection=True, transforms=True)
@@ -21,17 +22,22 @@ class TurnaroundTool:
 
         self.selected_model = selection[0]
 
+        # store original parent so we can restore it on removal
+        original_parents = cmds.listRelatives( self.selected_model, parent=True)
+
+        self.original_parent = (original_parents[0] if original_parents else None )
+
         if cmds.objExists("turntable_grp"):
             cmds.delete("turntable_grp")
 
         self.turntable = cmds.group(empty=True, name="turntable_grp")
 
-        rotation_group = cmds.group(empty=True, name="turntable_rotate", parent=self.turntable)
+        rotation_group = cmds.group( empty=True, name="turntable_rotate", parent=self.turntable )
 
         if not cmds.objExists(f"{self.turntable}.rotateGroup"):
             cmds.addAttr(self.turntable, ln="rotateGroup", dt="string")
 
-        cmds.setAttr(f"{self.turntable}.rotateGroup", rotation_group, type="string")
+        cmds.setAttr( f"{self.turntable}.rotateGroup", rotation_group, type="string" )
 
         return True
 
@@ -90,15 +96,20 @@ class TurnaroundTool:
         if not cmds.objExists("turntable_grp"):
             return
 
-        children = cmds.listRelatives( "turntable_grp", allDescendents=True, type="transform")
+        children = cmds.listRelatives( "turntable_grp", allDescendents=True, type="transform" )
 
         if children:
             for child in children:
                 if "turntable" not in child:
-                    cmds.parent(child, world=True)
+                    if self.original_parent and cmds.objExists(self.original_parent):
+                        cmds.parent(child, self.original_parent)
+                    else:
+                        cmds.parent(child, world=True)
 
         cmds.delete("turntable_grp")
+
         self.selected_model = None
+        self.original_parent = None
 
 class GUIUI(qw.QDialog):
 
