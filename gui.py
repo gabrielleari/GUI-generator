@@ -24,12 +24,12 @@ class TurnaroundTool:
 
         self.turntable = cmds.group(empty=True, name="turntable_grp")
 
-        rotation_group = cmds.group( empty=True, name="turntable_rotate", parent=self.turntable )
+        rotation_group = cmds.group( empty=True, name="turntable_rotate", parent.self.turntable)
 
         if not cmds.objExists(f"{self.turntable}.rotateGroup"):
             cmds.addAttr(self.turntable, ln="rotateGroup", dt="string")
 
-        cmds.setAttr(f"{self.turntable}.rotateGroup", rotation_group, type="string" )
+        cmds.setAttr( f"{self.turntable}.rotateGroup", rotation_group, type="string")
 
         return True
 
@@ -52,6 +52,21 @@ class TurnaroundTool:
 
         cmds.setAttr(f"{rotation_group}.rotateY", rotation_amount)
         cmds.setKeyframe(rotation_group, attribute="rotateY", time=num_frames)
+
+    def remove_turntable(self):
+        if not cmds.objExists("turntable_grp"):
+            return
+
+        # quick fix for parenting, should probably clean this up later
+        children = cmds.listRelatives( "turntable_grp", allDescendents=True, type="transform" )
+
+        if children:
+            for child in children:
+                if "turntable" not in child:
+                    cmds.parent(child, world=True)
+
+        cmds.delete("turntable_grp")
+        self.selected_model = None
 
 class GUIUI(qw.QDialog):
 
@@ -92,6 +107,7 @@ class GUIUI(qw.QDialog):
         create_pb.clicked.connect(self.create_playblast)
 
         remove_tt = qw.QPushButton("Remove Turn Table")
+        remove_tt.clicked.connect(self.remove_turntable)
 
         close = qw.QPushButton("Close")
         close.clicked.connect(self.close)
@@ -122,6 +138,9 @@ class GUIUI(qw.QDialog):
 
         cmds.playbackOptions(minTime=1, maxTime=frames)
         self.tool.create_animation(frames, direction)
+
+    def remove_turntable(self):
+        self.tool.remove_turntable()
 
 def launch_ui():
     global GUIUI_window
