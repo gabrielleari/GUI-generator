@@ -8,8 +8,17 @@ class TurnaroundTool:
 
     def __init__(self):
         self.turntable = None
+        self.selected_model = None
 
-    def create_turntable(self):
+    def create_turntable(self, direction="ccw"):
+        selection = cmds.ls(selection=True, transforms=True)
+
+        if not selection:
+            # user did not select anything
+            return False
+
+        self.selected_model = selection[0]
+
         if cmds.objExists("turntable_grp"):
             cmds.delete("turntable_grp")
 
@@ -17,13 +26,21 @@ class TurnaroundTool:
 
         rotation_group = cmds.group( empty=True, name="turntable_rotate", parent=self.turntable)
 
-        cmds.addAttr(self.turntable, ln="rotateGroup", dt="string")
+        if not cmds.objExists(f"{self.turntable}.rotateGroup"):
+            cmds.addAttr(self.turntable, ln="rotateGroup", dt="string")
+
         cmds.setAttr( f"{self.turntable}.rotateGroup", rotation_group, type="string")
 
+        return True
+
     def parent_model(self):
-        selection = cmds.ls(selection=True, transforms=True)
+        if not self.selected_model:
+            return False
+
         rotation_group = cmds.getAttr(f"{self.turntable}.rotateGroup")
-        cmds.parent(selection[0], rotation_group)
+        cmds.parent(self.selected_model, rotation_group)
+
+        return True
 
 class GUIUI(qw.QDialog):
 
@@ -76,7 +93,11 @@ class GUIUI(qw.QDialog):
         layout.addRow(close)
 
     def create_turntable(self):
-        self.tool.create_turntable()
+        if self.rotation_direction.checkedId() == 0:
+            direction = "cw"
+        else:
+            direction = "ccw"
+        self.tool.create_turntable(direction)
         self.tool.parent_model()
 
 def launch_ui():
